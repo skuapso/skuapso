@@ -1,0 +1,20 @@
+{application, skuapso,
+ [
+  {description, ""},
+  {vsn, git},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  logger,
+		  hooks
+                 ]},
+  {mod, {skuapso, []}},
+  {env, [
+    {modules, []},
+    {ssh, [
+      {port, 20222},
+      {system_dir, "./.ssh"}
+    ]}
+  ]}
+ ]}.
