@@ -1,6 +1,11 @@
 %% vim: ft=erlang
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% internal vars
+[_, AppNameBin | _] = lists:reverse(re:split(SCRIPT, "/")),
+AppName = erlang:binary_to_list(AppNameBin),
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% internal functions
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 OsGetEnv = fun(Env, Default) ->
                Val = os:getenv(Env),
                if
@@ -50,7 +55,9 @@ UpdateConfigFromFile = fun
                          (CurrentConfig, File) ->
                            case file:consult(File) of
                              {ok, Terms}  -> ConfigSetList(CurrentConfig, Terms);
-                             _            -> CurrentConfig
+                             Error        ->
+                               io:format("error while reading file ~p: ~p~n", [File, Error]),
+                               throw(Error)
                            end
                        end,
 
@@ -59,6 +66,20 @@ UpdateConfigFromEnv = fun(CurrentConfig, Env) ->
                           UpdateConfigFromFile(CurrentConfig, File)
                       end,
 
+UpdateConfigFromRebarEnvDir = fun(CurrentConfig) ->
+                                  File = OsGetEnv("REBAR_CONFIG_DIR", [])
+                                        ++ "/"
+                                        ++ AppName
+                                        ++ ".rebar.config",
+                                  case filelib:is_regular(File) of
+                                    false ->
+                                      CurrentConfig;
+                                    true ->
+                                      UpdateConfigFromFile(CurrentConfig, File)
+                                  end
+                              end.
+
+
 UpdateConfigFromRebarEnv = fun(CurrentConfig) ->
                                Cfg = UpdateConfigFromEnv(CurrentConfig, "REBAR_CONFIG"),
                                os:unsetenv("REBAR_CONFIG"),
@@ -66,41 +87,47 @@ UpdateConfigFromRebarEnv = fun(CurrentConfig) ->
                            end,
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 UpdateConfigFromAppEnv = fun(CurrentConfig) ->
-                             [_, AppNameBin | _] = lists:reverse(re:split(SCRIPT, "/")),
-                             AppName = erlang:binary_to_list(AppNameBin),
                              UpdateConfigFromEnv(CurrentConfig,
                                                  UpperStr(AppName) ++ "_REBAR_CONFIG")
                          end,
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-UpdateVCS = fun({SubApp, Version, X}) ->
-          DefaultPrefix = OsGetEnv("REBAR_DEPS_DEFAULT_GIT_PREFIX", "https://github.com/koctep/"),
-          VCSPrefix = fun(EnvName) ->
-                          EnvNameStr = erlang:atom_to_list(EnvName),
-                          EnvGitOS = OsGetEnv(UpperStr(EnvNameStr) ++ "_GIT_PREFIX", DefaultPrefix)
-                      end,
-          AppVCS = fun(Prefix, AppName) ->
-                       Prefix ++ erlang:atom_to_list(AppName)
-                   end,
-          RebarVCS = case X of
-                       {git, env, Ref} ->
-                         {git, AppVCS(VCSPrefix(SubApp), SubApp), Ref};
-                       {git, {env, EnvName}, Ref} ->
-                         {git, AppVCS(VCSPrefix(EnvName), SubApp), Ref};
-                       _ -> X
-                     end,
-          {SubApp, Version, RebarVCS}
-      end,
+RebarVCS = fun(SubApp, VCS) ->
+               DefaultPrefix = OsGetEnv("REBAR_DEPS_DEFAULT_GIT_PREFIX", "https://github.com/koctep/"),
+               VCSPrefix = fun(EnvName) ->
+                               EnvNameStr = erlang:atom_to_list(EnvName),
+                               EnvGitOS = OsGetEnv(UpperStr(EnvNameStr) ++ "_GIT_PREFIX",
+                                                   DefaultPrefix)
+                           end,
+               AppVCS = fun(Prefix, AppName) ->
+                            Prefix ++ erlang:atom_to_list(AppName)
+                        end,
+               case VCS of
+                 {git, env, Ref} ->
+                   {git, AppVCS(VCSPrefix(SubApp), SubApp), Ref};
+                 {git, {env, EnvName}, Ref} ->
+                   {git, AppVCS(VCSPrefix(EnvName), SubApp), Ref};
+                 _ -> VCS
+               end
+           end,
+
+UpdateVCS = fun({SubApp, Version, VCS}) ->
+                {SubApp, Version, RebarVCS(SubApp, VCS)};
+               ({SubApp, Version, VCS, Opts}) ->
+                {SubApp, Version, RebarVCS(SubApp, VCS), Opts};
+               (X) -> X
+            end,
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Cfg0 = UpdateConfigFromRebarEnv(CONFIG),
-Cfg1 = UpdateConfigFromAppEnv(Cfg0),
+Cfg0 = UpdateConfigFromRebarEnvDir(CONFIG),
+Cfg1 = UpdateConfigFromRebarEnv(Cfg0),
+Cfg2 = UpdateConfigFromAppEnv(Cfg1),
 
 Deps = lists:map(
          fun(X) ->
              UpdateVCS(X)
-         end, ConfigGet(Cfg1, deps, [])),
+         end, ConfigGet(Cfg2, deps, [])),
 
-Cfg2 = ConfigSetList(Cfg1, [{deps, Deps}]),
+Cfg3 = ConfigSetList(Cfg2, [{deps, Deps}]),
 
-Cfg = Cfg2,
+Cfg = Cfg3,
 
 Cfg.

@@ -41,19 +41,8 @@ start(_StartType, StartArgs) ->
 
 start_link(StartArgs) ->
   ok = crypto:start(),
-  ok = ssh:start(),
   ok = logger:start(),
   ok = hooks:start(),
-  SSHOpts = misc:get_env(?MODULE, ssh, StartArgs),
-  debug("ssh options: ~w", [SSHOpts]),
-  SSHPort = proplists:get_value(port, SSHOpts, 20222),
-  SSHAddress = proplists:get_value(address, SSHOpts, {0, 0, 0, 0}),
-  ssh:daemon(SSHAddress,
-             SSHPort,
-             [{shell, fun shell:start/0} |
-              proplists:delete(port,
-              proplists:delete(address, SSHOpts))
-             ]),
   Reply = supervisor:start_link({local, ?MODULE}, ?MODULE, []),
   Modules = misc:get_env(?MODULE, modules, StartArgs),
   lists:map(fun(X) ->

@@ -6,12 +6,12 @@ endif
 
 .PHONY: compile install clean deps rebar_%
 
+compile:
+	@rebar compile
+
 deps:
 	@rebar get-deps
 	@rebar update-deps
-
-compile: deps
-	@rebar compile
 
 install: config
 	@echo "installing in $(PWD)"
