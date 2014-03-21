@@ -28,3 +28,12 @@ clean:
 
 rebar_%:
 	@rebar $*
+
+lib-changes:
+	@for i in $$(ls lib); do\
+		(\
+			cd lib/$$i;\
+			printf "\t\t\t \033[01;33m** in $$i\033[00m\n";\
+			git st\
+		);\
+	done
