@@ -3,6 +3,11 @@ ifeq ($(PREFIX),)
 else
   PWD	:= "$(PREFIX)/skuapso"
 endif
+ifeq ($(DETAILS),)
+	GIT_MSG_CMD := "git status --porcelain"
+else
+	GIT_MSG_CMD := "git status"
+endif
 
 .PHONY: compile install clean deps rebar_%
 
@@ -33,7 +38,11 @@ lib-changes:
 	@for i in $$(ls lib); do\
 		(\
 			cd lib/$$i;\
-			printf "\t\t\t \033[01;33m** in $$i\033[00m\n";\
-			git st\
+			MSG_CMD=$(GIT_MSG_CMD);\
+			MSG=`$$MSG_CMD`;\
+			if [ ! -z "$$MSG" ]; then\
+				printf "\t\t\t \033[01;33m** in $$i\033[00m\n"; \
+				echo "$$MSG";\
+			fi\
 		);\
 	done
