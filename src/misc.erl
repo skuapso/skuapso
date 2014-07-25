@@ -22,11 +22,10 @@
     datetime_to_list/2,
     is_proplist/1,
     binary_to_float/1,
-    compact_list/1,
-    convert_digital/1,
     interval2seconds/1,
-    bits2tuples/1,
-    bits2tuples/2
+    bits2map/2,
+    map2bits/1,
+    update_path/3
   ]
 ).
 
@@ -42,15 +41,12 @@ ihb (I) ->
 list_to_string (L) when is_list (L) ->
   binary_to_list (list_to_binary (L)).
 
+char_to_hex (Char) when Char > 16#0f ->
+  [Hex] = io_lib:format ("~2.16.0b", [Char]),
+  Hex;
 char_to_hex (Char) ->
-  if
-    Char > 16#0F ->
-      [Hex] = io_lib:format ("~2.16.0b", [Char]);
-    true ->
-      [[A, B]] = io_lib:format ("~2.16.0b", [Char]),
-      Hex = A ++ [B]
-  end,
-  Hex.
+  [[A, B]] = io_lib:format ("~2.16.0b", [Char]),
+  A ++ [B].
 
 string_to_hex (Str) ->
   lists:concat ([char_to_hex (X) || X <- Str]).
@@ -142,51 +138,25 @@ binary_to_float(<<S:1/integer, E:8/unsigned-big-integer, Si:23/unsigned-big-inte
 binary_to_float(<<F:64/signed-big-float>>) ->
   F.
 
-compact_list([]) ->
-  [];
-compact_list(List) ->
-%  L0 = lists:flatten(List),
-  L0 = lists:delete(fun(X) ->
-          case X of
-            [] -> true;
-            _ -> false
-          end
-      end, List),
-  L1 = lists:map(
-      fun(X) ->
-          {X, lists:flatten(proplists:get_all_values(X, List))}
-      end,
-      proplists:get_keys(L0)),
-  WithoutSet = proplists:delete(set, L1),
-  case compact_list(proplists:get_value(set, L1, [])) of
-    [] ->
-      WithoutSet;
-    Set ->
-      WithoutSet ++ [{set, Set}]
-  end.
-
-convert_digital(D) ->
-  convert_digital(D, 0).
-
-convert_digital([], N) ->
-  N;
-convert_digital([{I, 1} | D], N) ->
-  convert_digital(D, N bor (1 bsl (I - 1)));
-convert_digital([{_, _} | D], N) ->
-  convert_digital(D, N).
-
 interval2seconds({{H, M, S}, D, M}) ->
   S + M * 60 + H * 3600 + D * 3600 * 24 + M * 3600 * 24 * 30.
 
-bits2tuples(I) ->
-  bits2tuples(I, 1).
+bits2map(N, I) -> bits2map(N, I, 0, #{}).
+bits2map(N, I, T, M) when T < N ->
+  bits2map(N, I bsr 1, T + 1, maps:put(T + 1, I band 1, M));
+bits2map(_, _, _, M) -> M.
 
-bits2tuples(I, N) ->
-  bits2tuples(I, N, []).
+map2bits(M) -> list2bits(maps:to_list(M), 0).
 
-bits2tuples(0, _, T) ->
-  lists:reverse(T);
-bits2tuples(I, N, T) when I band 1 =:= 1 ->
-  bits2tuples(I bsr 1, N + 1, [{N, 1} | T]);
-bits2tuples(I, N, T) ->
-  bits2tuples(I bsr 1, N + 1, T).
+list2bits([{N, V} | T], I) when V =:= 1 ->
+  list2bits(T, I bsl (N - 1));
+list2bits([_ | T], I) ->
+  list2bits(T, I);
+list2bits([], I) -> I.
+
+update_path([Key | []], Value, Map) when is_map(Map) ->
+  maps:put(Key, Value, Map);
+update_path([Key | Path], Value, Map) when is_map(Map) ->
+  maps:put(Key, update_path(Path, Value, maps:get(Key, Map, #{})), Map);
+update_path(Path, Value, _) ->
+  update_path(Path, Value, #{}).
