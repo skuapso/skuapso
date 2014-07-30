@@ -24,6 +24,7 @@
     binary_to_float/1,
     interval2seconds/1,
     bits2map/2,
+    bits2map/3,
     map2bits/1,
     update_path/3
   ]
@@ -142,6 +143,7 @@ interval2seconds({{H, M, S}, D, M}) ->
   S + M * 60 + H * 3600 + D * 3600 * 24 + M * 3600 * 24 * 30.
 
 bits2map(N, I) -> bits2map(N, I, 0, #{}).
+bits2map(N, I, T) -> bits2map(N, I, 0, #{}).
 bits2map(N, I, T, M) when T < N ->
   bits2map(N, I bsr 1, T + 1, maps:put(T + 1, I band 1, M));
 bits2map(_, _, _, M) -> M.
@@ -149,7 +151,7 @@ bits2map(_, _, _, M) -> M.
 map2bits(M) -> list2bits(maps:to_list(M), 0).
 
 list2bits([{N, V} | T], I) when V =:= 1 ->
-  list2bits(T, I bsl (N - 1));
+  list2bits(T, I bor (1 bsl (N - 1)));
 list2bits([_ | T], I) ->
   list2bits(T, I);
 list2bits([], I) -> I.
