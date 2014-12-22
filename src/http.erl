@@ -7,36 +7,36 @@
 -include_lib("logger/include/log.hrl").
 
 parse (Data) when is_binary (Data) ->
-  debug ("parsing <<\"~s\">>", [Data]),
+  '_debug' ("parsing <<\"~s\">>", [Data]),
   A = try
     {ok, Packet, Rest} = erlang:decode_packet (http, Data, []),
     {ok, parse (Packet, Rest)}
   catch
     error:{badmatch, {more, _}}  ->
-      info ("incomplete package"),
+      '_info' ("incomplete package"),
       {error, incomplete};
     throw:incomplete ->
       {error, incomplete};
     A1:A2 ->
-      err ("~w : ~w", [A1, A2]),
+      '_err' ("~w : ~w", [A1, A2]),
       {A1, A2}
   end,
-  debug ("answer is ~w", [A]),
+  '_debug' ("answer is ~w", [A]),
   A.
 
 parse ({http_request, Method, {abs_path, URI}, {Maj, Min}}, Header) ->
-  trace ("http request"),
+  '_trace' ("http request"),
   Version = Maj + Min / 10,
   [{type, request}, {method, Method}, {uri, URI}, {version, Version}] ++ parse_header (Header);
 parse ({http_response, {Maj, Min}, Answer, StrAnswer}, Header) ->
-  trace ("http response"),
+  '_trace' ("http response"),
   Version = Maj + Min / 10,
   [{type, response}, {version, Version}, {answer, Answer}, {str_answer, StrAnswer}] ++ parse_header (Header).
 
 parse_header (<<>>) ->
   [];
 parse_header (Header) ->
-  debug ("parsing header <<\"~s\">>", [Header]),
+  '_debug' ("parsing header <<\"~s\">>", [Header]),
   {Item, Rest} = store (erlang:decode_packet (httph_bin, Header, [])),
   Item ++ parse_header (Rest).
 
@@ -49,7 +49,7 @@ store ({ok, {http_header, _Length, Key, _Resolver, Value}, Rest}) when is_atom (
 store ({ok, http_eoh, Data}) ->
   store ({data, Data}, <<>>);
 store (Else) ->
-  err ("store unknown data: ~w", [Else]),
+  '_err' ("store unknown data: ~w", [Else]),
   {[], <<>>}.
 
 store ({Key, Value}, Rest)

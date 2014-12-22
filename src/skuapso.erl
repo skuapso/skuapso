@@ -46,7 +46,7 @@ start_link(StartArgs) ->
   Reply = supervisor:start_link({local, ?MODULE}, ?MODULE, []),
   Modules = misc:get_env(?MODULE, modules, StartArgs),
   lists:map(fun(X) ->
-        notice("starting ~w", [X]),
+        '_notice'("starting ~w", [X]),
         ok = X:start()
     end, Modules),
   Reply.
