@@ -9,7 +9,7 @@
 После сборки rebar'а необходимо разместить исполняемый файл в PATH.
 
 # Сборка
-`$ make`
+`$ make deps && make`
 
 # Конфигурация
 `$ make config > etc/skuapso.config`
