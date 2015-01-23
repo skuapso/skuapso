@@ -31,7 +31,7 @@ install: config
 	@find . -name \*.app -exec cp '{}' $(PWD) \;
 	@echo done
 
-config: compile
+config:
 	@APPS="$(APPSFILES)" escript make_config.erl
 
 clean:

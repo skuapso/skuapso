@@ -1,7 +1,6 @@
 #!/usr/bin/escript
 
 main(_) ->
-  io:format("~p~n", [os:getenv("APPS")]),
   Files = case os:getenv("APPS") of
             false -> [];
             F -> re:split(F, " ")
