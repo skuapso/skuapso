@@ -8,6 +8,11 @@ ifeq ($(DETAILS),)
 else
 	GIT_MSG_CMD := "git status"
 endif
+ifeq ($(REBAR_DEPS_DEFAULT_GIT_PREFIX),)
+	GIT_PREFIX := "https://github.com/skuapso/"
+else
+	GIT_PREFIX := $(REBAR_DEPS_DEFAULT_GIT_PREFIX)
+endif
 
 .PHONY: compile install clean deps rebar_%
 
@@ -15,8 +20,8 @@ compile:
 	@rebar compile
 
 deps:
-	@rebar get-deps
-	@rebar update-deps
+	@REBAR_DEPS_DEFAULT_GIT_PREFIX=$(GIT_PREFIX) rebar get-deps
+	@REBAR_DEPS_DEFAULT_GIT_PREFIX=$(GIT_PREFIX) rebar update-deps
 
 install: config
 	@echo "installing in $(PWD)"
