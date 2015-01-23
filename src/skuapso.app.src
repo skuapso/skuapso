@@ -9,10 +9,6 @@
                  ]},
   {mod, {skuapso, []}},
   {env, [
-    {modules, []},
-    {ssh, [
-      {port, 20222},
-      {system_dir, "./.ssh"}
-    ]}
+    {modules, []}
   ]}
  ]}.
