@@ -15,7 +15,7 @@ else
 endif
 APPSFILES := $(wildcard ebin/*.app lib/*/ebin/*.app)
 
-.PHONY: compile install clean deps rebar_%
+.PHONY: compile install clean deps rebar_% config
 
 compile:
 	@rebar compile
@@ -31,7 +31,7 @@ install: config
 	@find . -name \*.app -exec cp '{}' $(PWD) \;
 	@echo done
 
-config:
+config: compile
 	@APPS="$(APPSFILES)" escript make_config.erl
 
 clean:
