@@ -8,10 +8,10 @@ ifeq ($(DETAILS),)
 else
 	GIT_MSG_CMD := "git status"
 endif
-ifeq ($(REBAR_DEPS_DEFAULT_GIT_PREFIX),)
+ifeq ($(SKUAPSO_GIT_PREFIX),)
 	GIT_PREFIX := "https://github.com/skuapso/"
 else
-	GIT_PREFIX := $(REBAR_DEPS_DEFAULT_GIT_PREFIX)
+	GIT_PREFIX := $(SKUAPSO_GIT_PREFIX)
 endif
 APPSFILES := $(wildcard ebin/*.app lib/*/ebin/*.app)
 
@@ -21,8 +21,8 @@ compile:
 	@rebar compile
 
 deps:
-	@REBAR_DEPS_DEFAULT_GIT_PREFIX=$(GIT_PREFIX) rebar get-deps
-	@REBAR_DEPS_DEFAULT_GIT_PREFIX=$(GIT_PREFIX) rebar update-deps
+	@SKUAPSO_GIT_PREFIX=$(GIT_PREFIX) rebar get-deps
+	@SKUAPSO_GIT_PREFIX=$(GIT_PREFIX) rebar update-deps
 
 install: config
 	@echo "installing in $(PWD)"
