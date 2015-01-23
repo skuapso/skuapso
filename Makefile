@@ -13,6 +13,7 @@ ifeq ($(REBAR_DEPS_DEFAULT_GIT_PREFIX),)
 else
 	GIT_PREFIX := $(REBAR_DEPS_DEFAULT_GIT_PREFIX)
 endif
+APPSFILES := $(wildcard ebin/*.app lib/*/ebin/*.app)
 
 .PHONY: compile install clean deps rebar_%
 
@@ -30,8 +31,8 @@ install: config
 	@find . -name \*.app -exec cp '{}' $(PWD) \;
 	@echo done
 
-config: apps/*/ebin/*.app
-	@escript make_config.erl
+config:
+	@APPS="$(APPSFILES)" escript make_config.erl
 
 clean:
 	@rebar clean
