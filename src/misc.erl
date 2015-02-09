@@ -29,6 +29,9 @@
     update_path/3
   ]
 ).
+-export([to_json/1]).
+
+-include_lib("logger/include/log.hrl").
 
 bhi (Bin) ->
   [Hex] = io_lib:format ("~.16B", [Bin]),
@@ -143,7 +146,7 @@ interval2seconds({{H, M, S}, D, M}) ->
   S + M * 60 + H * 3600 + D * 3600 * 24 + M * 3600 * 24 * 30.
 
 bits2map(N, I) -> bits2map(N, I, 0, #{}).
-bits2map(N, I, T) -> bits2map(N, I, 0, #{}).
+bits2map(N, I, T) -> bits2map(N, I, T, #{}).
 bits2map(N, I, T, M) when T < N ->
   bits2map(N, I bsr 1, T + 1, maps:put(T + 1, I band 1, M));
 bits2map(_, _, _, M) -> M.
@@ -162,3 +165,22 @@ update_path([Key | Path], Value, Map) when is_map(Map) ->
   maps:put(Key, update_path(Path, Value, maps:get(Key, Map, #{})), Map);
 update_path(Path, Value, _) ->
   update_path(Path, Value, #{}).
+
+to_json(L) ->
+  L1 = pre_json(L),
+  case catch jsxn:encode(L1) of
+    {'EXIT', {badarg, _}} -> '_warning'("can't transform to json: ~w", [L1]), <<"{}">>;
+    {'EXIT', Reason} -> '_warning'("jsx failed transform ~w: ~w", [L1, Reason]), <<"{}">>;
+    E -> E
+  end.
+
+pre_json(Map) when is_map(Map) ->
+  maps:map(
+    fun(_, V) when is_map(V) -> pre_json(V);
+       (LL, {G, M}) when LL =:= latitude; LL =:= longitude ->
+        #{d => G, m => M};
+       (_, V) -> V
+    end,
+    Map);
+pre_json(List) when is_list(List) ->
+  [pre_json(Map) || Map <- List].
