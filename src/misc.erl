@@ -147,8 +147,8 @@ interval2seconds({{H, M, S}, D, M}) ->
 
 bits2map(N, I) -> bits2map(N, I, 0, #{}).
 bits2map(N, I, T) -> bits2map(N, I, T, #{}).
-bits2map(N, I, T, M) when T < N ->
-  bits2map(N, I bsr 1, T + 1, maps:put(T + 1, I band 1, M));
+bits2map(N, I, T, M) when N > 0 ->
+  bits2map(N - 1, I bsr 1, T + 1, maps:put(T + 1, I band 1, M));
 bits2map(_, _, _, M) -> M.
 
 map2bits(M) -> list2bits(maps:to_list(M), 0).
